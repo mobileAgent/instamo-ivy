@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="all" name="instamo-ivy"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+
+  <property name="project.name" value="instamo-ivy"/>
+  <property environment="env"/>
+  <property name="RELEASE" value="1.0-SNAPSHOT"/>
+  
+  <!-- set up ivy properties -->
+  <property name="ivy.repo.url" value="http://repo1.maven.org/maven2"/>
+  <property name="ivy.install.version" value="2.3.0-rc1"/>
+  <property name="ivy.jar.dir" value="${basedir}/target/resources/lib"/>
+  <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar"/>
+
+  <!-- get the jars from the lib directory -->
+  <fileset id="libjars" dir="${basedir}/lib">
+    <include name="**/*.jar"/>
+  </fileset>
+
+  <path id="build.class.path">
+    <fileset refid="libjars"/>
+    <pathelement path="${basedir}/target/classes" />
+  </path>
+
+  <target name="all" depends="classes,jar" description="--> make everything" />
+
+  <target name="clean" depends="init" description="--> clean up">
+    <delete dir="${basedir}/target"/>
+    <delete dir="${basedir}/lib" includes="**/*.jar"/>
+  </target>
+  
+  <target name="classes" depends="init,resolve" description="--> compile classes" >
+    <depend closure="no"
+            cache="${basedir}/.depend.dep"
+            srcdir="${basedir}/src/main/java"
+            destdir="${basedir}/target/classes">
+    </depend>
+
+    <javac srcdir="${basedir}/src/main/java"
+           destdir="${basedir}/target/classes"
+           deprecation="true"
+           encoding="utf-8"
+           includeantruntime="false"
+           debug="yes" source="1.6" target="1.6">
+      <compilerarg value="-Xlint:-path"/>
+      <classpath refid="build.class.path" />
+    </javac>
+  </target>
+  
+  <target name="init" description="--> initialize the build space">
+    <tstamp>
+      <format property="build.timestamp"
+              pattern="yyyy-MM-dd HH:mm"
+              unit="hour"/>
+    </tstamp>
+    <mkdir dir="${basedir}/target/classes"/>
+    <mkdir dir="${basedir}/target/resources/lib"/>
+  </target>
+
+  <target name="resources" depends="init">
+    <copy todir="${basedir}/target/classes" overwrite="true">
+      <fileset dir="${basedir}/src/main/resources"/>
+    </copy>
+  </target>
+
+  <target name="jar" depends="classes,resources" description="--> make jar">
+    <jar destfile="${basedir}/target/instamo-ivy-${RELEASE}.jar" index="true">
+      <fileset dir="${basedir}/target/classes" />
+      <manifest>
+        <attribute name="Built-By" value="${user.name} on ${build.timestamp}" />
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="resolve" depends="init,install-ivy" description="--> retrieve dependencies with ivy" unless="ivy.has.resolved">
+        <property name="ivy.has.resolved" value="true"/>
+        <ivy:retrieve />
+  </target>
+
+  <target name="install-ivy" depends="download-ivy" description="--> install ivy">
+    <path id="ivy.lib.path">
+      <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+    </path>
+    <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+  </target>
+
+  <target name="download-ivy" unless="skip.download">
+    <mkdir dir="${ivy.jar.dir}"/>
+    <echo message="installing ivy..."/>
+    <get src="${ivy.repo.url}/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" dest="${ivy.jar.file}" usetimestamp="true"/>
+  </target>
+
+  <target name="ensure-class-set" unless="class">
+    <fail message="You must run this target with -Dclass=classname"/>
+  </target>
+  
+  <target name="run" depends="jar,ensure-class-set" description="--> run the instamo-ivy demo">
+    <java classname="${class}"
+          classpathref="build.class.path"
+          fork="yes"
+          />
+  </target>
+
+</project>
