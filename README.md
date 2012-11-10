@@ -12,7 +12,7 @@ installed by following the steps below.
 ```
 git clone git://github.com/mobileAgent/instamo-ivy.git
 cd instamo-ivy
-vim src/main/java/instamo/AccumuloApp.java
+emacs src/main/java/instamo/AccumuloApp.java
 ant run -Dclass=instamo.AccumuloApp
 ```
 
