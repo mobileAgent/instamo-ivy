@@ -23,18 +23,21 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.commons.io.FileUtils;
-
+    
 public class AccumuloApp {
   
-  public static void run(String instanceName, String zookeepers, String rootPassword, String args[]) throws Exception {
+  public static void run(String instanceName, String zookeepers, AuthenticationToken rootPassword, String args[]) throws Exception {
     // edit this method to play with Accumulo
 
     Instance instance = new ZooKeeperInstance(instanceName, zookeepers);
@@ -42,8 +45,12 @@ public class AccumuloApp {
     Connector conn = instance.getConnector("root", rootPassword);
     
     conn.tableOperations().create("foo");
-    
-    BatchWriter bw = conn.createBatchWriter("foo", 50000000, 60000l, 3);
+
+    BatchWriterConfig bwConfig = new BatchWriterConfig();
+    bwConfig.setMaxLatency(60000l,java.util.concurrent.TimeUnit.MILLISECONDS);
+    bwConfig.setMaxWriteThreads(3);
+    bwConfig.setMaxMemory(50000000);
+    BatchWriter bw = conn.createBatchWriter("foo",bwConfig);
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
     m.put("cf1", "cq2", "v3");
@@ -65,7 +72,7 @@ public class AccumuloApp {
     
       System.out.println("\n   ---- Running Accumulo App against accumulo-" + la.getAccumuloVersion() + "\n");
 
-      run(la.getInstanceName(), la.getZookeepers(), "pass1234", args);
+      run(la.getInstanceName(), la.getZookeepers(), new PasswordToken("pass1234"), args);
 
       System.out.println("\n   ---- Ran Accumulo App\n");
 
